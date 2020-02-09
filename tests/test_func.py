@@ -1,8 +1,8 @@
 import unittest
-from rnaagepy import RNAAgeCalc
-from rnaagepy import rawcount
-from rnaagepy import fpkm
-from rnaagepy.exceptions import SetterError
+from racpy import RNAAgeCalc
+from racpy import rawcount
+from racpy import fpkm
+from racpy.exceptions import SetterError
 import pandas as pd
 import numpy as np
 
