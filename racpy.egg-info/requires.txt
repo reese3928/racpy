@@ -6,4 +6,3 @@ statsmodels
 missingpy
 seaborn
 matplotlib
-sklearn
