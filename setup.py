@@ -11,7 +11,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['Click>=7.0', 'numpy', 'pandas', 'mygene', 'statsmodels',
-                'missingpy', 'seaborn', 'matplotlib', "sklearn"]
+                'missingpy', 'seaborn', 'matplotlib']
 
 setup_requirements = ['pytest-runner']
 
@@ -52,6 +52,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/reese3928/racpy',
-    version='0.1.0',
+    version='0.1.1',
     zip_safe=False,
 )
