@@ -1,0 +1,3 @@
+[console_scripts]
+racpy = racpy.cli:main
+

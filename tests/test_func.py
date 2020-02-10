@@ -167,8 +167,8 @@ class Test(unittest.TestCase):
         age_calc = RNAAgeCalc()
         self.assertEqual(age_calc._tissue, "all_tissues")
         self.assertEqual(age_calc.tissue, "all_tissues")
-        self.assertEqual(age_calc._signature, "Kuan_Ren")
-        self.assertEqual(age_calc.signature, "Kuan_Ren")
+        self.assertEqual(age_calc._signature, "GTExAge")
+        self.assertEqual(age_calc.signature, "GTExAge")
         with self.assertRaises(AssertionError):
             RNAAgeCalc(signature="unknown")
         age_calc = RNAAgeCalc(signature="DESeq")
@@ -187,8 +187,8 @@ class Test(unittest.TestCase):
         age_calc = RNAAgeCalc(tissue="notfound")
         self.assertEqual(age_calc._tissue, "all_tissues")
         self.assertEqual(age_calc.tissue, "all_tissues")
-        self.assertEqual(age_calc._signature, "Kuan_Ren")
-        self.assertEqual(age_calc.signature, "Kuan_Ren")
+        self.assertEqual(age_calc._signature, "GTExAge")
+        self.assertEqual(age_calc.signature, "GTExAge")
         with self.assertRaises(AssertionError):
             age_calc = RNAAgeCalc(tissue="notfound",
                                   signature="unknown")

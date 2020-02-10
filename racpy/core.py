@@ -44,13 +44,13 @@ class RNAAgeCalc(object):
     In the case that this argument is not provided, if `tissue` argument is
     also provided and the tissue is in the list above, the tissue specific age
     signature given by our DESeq2 analysis result on GTEx data will be used.
-    Otherwise, the across tissue signature "Kuan_Ren" will be used.
+    Otherwise, the across tissue signature "GTExAge" will be used.
 
     In the case that this argument is provided, it should be one of the
     following signatures. A detailed description of the meaning of these
     signatures is given in the package tutorial.
 
-    DESeq, Pearson, Dev, deMagalhaes, GenAge, Kuan_Ren, Peters, all
+    DESeq, Pearson, Dev, deMagalhaes, GenAge, GTExAge, Peters, all
     '''
 
     def __init__(self, tissue=None, exprtype="FPKM", idtype="symbol",
@@ -72,13 +72,13 @@ class RNAAgeCalc(object):
                   "trained by all tissues automatically.")
             tissue = "all_tissues"
             if signature is None:
-                print("signature is not provided, using Kuan_Ren signature "
+                print("signature is not provided, using GTExAge signature "
                       "automatically.")
-                signature = "Kuan_Ren"
+                signature = "GTExAge"
             else:
                 assert signature in self._sig_set(), \
                     "signature should be one of DESeq, Pearson, Dev, " \
-                    "deMagalhaes, GenAge, Kuan_Ren, Peters, all."
+                    "deMagalhaes, GenAge, GTExAge, Peters, all."
                 if signature == "DESeq":
                     print("DESeq signature is currently not available for all "
                           "tissues, using Pearson signature automatically.")
@@ -94,19 +94,19 @@ class RNAAgeCalc(object):
                 else:
                     assert signature in self._sig_set(), \
                         "signature should be one of DESeq, Pearson, Dev, " \
-                        "deMagalhaes, GenAge, Kuan_Ren, Peters, all."
+                        "deMagalhaes, GenAge, GTExAge, Peters, all."
             else:
                 print("the provided tissue was not found, using the RNA age "
                       "predictor trained by all tissues automatically.")
                 tissue = "all_tissues"
                 if signature is None:
-                    print("signature is not provided, using Kuan_Ren "
+                    print("signature is not provided, using GTExAge "
                           "signature automatically.")
-                    signature = "Kuan_Ren"
+                    signature = "GTExAge"
                 else:
                     assert signature in self._sig_set(), \
                         "signature should be one of DESeq, Pearson, Dev, " \
-                        "deMagalhaes, GenAge, Kuan_Ren, Peters, all."
+                        "deMagalhaes, GenAge, GTExAge, Peters, all."
                     if signature == "DESeq":
                         print("DESeq signature is currently not available for "
                               "all tissues, using Pearson signature "
@@ -276,10 +276,6 @@ class RNAAgeCalc(object):
         genelength is provided, the function will convert raw count to FPKM
         according to the user-supplied gene length. Otherwise, gene length
         is obtained from the internal database.
-
-        :param idtype: a string which indicates the gene id type in "exprdata".
-        It should be one of "symbol", "ensembl.gene", "entrezgene" or "refseq".
-        Default is "symbol".
 
         :return: a pandas DataFrame contains FPKM.
         """
@@ -462,7 +458,7 @@ class RNAAgeCalc(object):
     @staticmethod
     def _sig_set():
         return set(["DESeq", "Pearson", "Dev", "deMagalhaes", "GenAge",
-                    "Kuan_Ren", "Peters", "all"])
+                    "GTExAge", "Peters", "all"])
 
     def __repr__(self):
         return """RNAAgeCalc(tissue=%r, exprtype=%r, idtype=%r, stype=%r,
