@@ -59,7 +59,7 @@ Then construct an `RNAAgeCalc` object (here we use "brain" as an example)::
 Next we use an example of FPKM data to make prediction::
 
     from racpy import fpkm
-    res = rac_obj.predict_age(rnaagepy.fpkm)
+    res = rac_obj.predict_age(fpkm)
     print(res)
 
 Here we explain the options in `RNAAgeCalc`.

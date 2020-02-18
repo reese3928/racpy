@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
 Name: racpy
-Version: 0.1.1
+Version: 0.1.2
 Summary: RNASeq Age Calculation in Python
 Home-page: https://github.com/reese3928/racpy
 Author: Xu Ren, Pei Fen Kuan
@@ -43,7 +43,7 @@ Description: =====
         Authors
         --------
         
-        * Xu Ren <xuren2120@gmail.com>
+        * `Xu Ren <https://github.com/reese3928>`__ <xuren2120@gmail.com>
         * `Pei Fen Kuan <http://www.ams.sunysb.edu/~pfkuan/>`__ <peifen.kuan@stonybrook.edu>
         
         Credits
@@ -58,6 +58,11 @@ Description: =====
         =======
         History
         =======
+        
+        0.1.2 (2020-02-18)
+        ------------------
+        
+        * Bug fixes.
         
         0.1.0 (2020-02-09)
         ------------------
