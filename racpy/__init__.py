@@ -2,7 +2,7 @@
 
 __author__ = """Xu Ren"""
 __email__ = 'xuren2120@gmail.com'
-__version__ = '0.1.1'
+__version__ = '0.1.3'
 
 from .core import RNAAgeCalc
 from .makeplot import makeplot
