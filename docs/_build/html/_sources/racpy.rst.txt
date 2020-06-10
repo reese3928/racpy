@@ -28,14 +28,6 @@ racpy.exceptions module
    :undoc-members:
    :show-inheritance:
 
-racpy.internal\_data module
----------------------------
-
-.. automodule:: racpy.internal_data
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 racpy.makeplot module
 ---------------------
 

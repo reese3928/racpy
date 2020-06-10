@@ -1,8 +1,0 @@
-Click>=7.0
-numpy
-pandas
-mygene
-statsmodels
-missingpy
-seaborn
-matplotlib
