@@ -79,6 +79,6 @@ twine==3.1.1
 urllib3==1.25.8
 virtualenv==20.0.20
 watchdog==0.10.2
-wcwidth==0.1.9
+wcwidth==0.2.4
 webencodings==0.5.1
 zipp==3.1.0
