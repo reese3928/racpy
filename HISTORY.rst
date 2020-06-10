@@ -5,7 +5,7 @@ History
 0.1.4 (2020-06-10)
 ------------------
 
-* Created requirements.txt
+* Updated requirements_dev.txt
 
 0.1.3 (2020-04-24)
 ------------------
