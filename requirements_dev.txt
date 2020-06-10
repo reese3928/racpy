@@ -75,4 +75,4 @@ virtualenv==20.0.20
 watchdog==0.10.2
 wcwidth==0.1.9
 webencodings==0.5.1
-zipp==3.1.0
+zipp>=0.6.0
