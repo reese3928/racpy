@@ -1,0 +1,583 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>racpy.core &#8212; racpy 0.1.4 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for racpy.core</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">statsmodels.api</span> <span class="k">as</span> <span class="nn">sm</span>
+<span class="kn">import</span> <span class="nn">mygene</span>
+<span class="kn">from</span> <span class="nn">missingpy</span> <span class="kn">import</span> <span class="n">KNNImputer</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">exceptions</span> <span class="k">as</span> <span class="n">e</span>
+
+
+<div class="viewcode-block" id="RNAAgeCalc"><a class="viewcode-back" href="../../racpy.html#racpy.core.RNAAgeCalc">[docs]</a><span class="k">class</span> <span class="nc">RNAAgeCalc</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Calculate RNA age.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    - tissue: a string indicates which tissue the gene expression data</span>
+<span class="sd">    is obtained from. Users are expected to provide one of the these tissues:</span>
+
+<span class="sd">    adipose_tissue, adrenal_gland, blood, blood_vessel, brain, breast, colon,</span>
+<span class="sd">    esophagus, heart, liver, lung, muscle, nerve, ovary, pancreas, pituitary,</span>
+<span class="sd">    prostate, salivary_gland, skin, small_intestine, spleen, stomach, testis,</span>
+<span class="sd">    thyroid, uterus, vagina.</span>
+
+<span class="sd">    If the tissue argument is not provide or the provided tissue is not in</span>
+<span class="sd">    this list, then the age predictor trained on all tissues will be used to</span>
+<span class="sd">    calculate RNA age.</span>
+
+<span class="sd">    - exprtype: either &quot;count&quot; or &quot;FPKM&quot;. Default is &quot;FPKM&quot;. For RPKM data,</span>
+<span class="sd">    please use exprtype=&quot;FPKM&quot;.</span>
+
+<span class="sd">    - idtype: a string which indicates the gene id type in &quot;exprdata&quot;. It</span>
+<span class="sd">    should be one of &quot;symbol&quot;, &quot;ensembl.gene&quot;, &quot;entrezgene&quot; or &quot;refseq&quot;.</span>
+<span class="sd">    Default is &quot;symbol&quot;.</span>
+
+<span class="sd">    - stype: a string which specifies which version of pre-trained</span>
+<span class="sd">    calculators to be used. It should be either &quot;all&quot; or &quot;Caucasian&quot;. &quot;all&quot;</span>
+<span class="sd">    means samples from all races (American Indian/Alaska Native, Asian,</span>
+<span class="sd">    Black/African American, and Caucasian) are used to obtain the pre-trained</span>
+<span class="sd">    calculator. &quot;Caucasian&quot; means only the Caucasian samples are used to build</span>
+<span class="sd">    up the pre-trained calculator. Default is &quot;all&quot;.</span>
+
+<span class="sd">    - signature: a string which indicate the age signature to use when</span>
+<span class="sd">    calculating RNA age. This argument is not required.</span>
+
+<span class="sd">    In the case that this argument is not provided, if `tissue` argument is</span>
+<span class="sd">    also provided and the tissue is in the list above, the tissue specific age</span>
+<span class="sd">    signature given by our DESeq2 analysis result on GTEx data will be used.</span>
+<span class="sd">    Otherwise, the across tissue signature &quot;GTExAge&quot; will be used.</span>
+
+<span class="sd">    In the case that this argument is provided, it should be one of the</span>
+<span class="sd">    following signatures. A detailed description of the meaning of these</span>
+<span class="sd">    signatures is given in the package tutorial.</span>
+
+<span class="sd">    DESeq, Pearson, Dev, deMagalhaes, GenAge, GTExAge, Peters, all</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tissue</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exprtype</span><span class="o">=</span><span class="s2">&quot;FPKM&quot;</span><span class="p">,</span> <span class="n">idtype</span><span class="o">=</span><span class="s2">&quot;symbol&quot;</span><span class="p">,</span>
+                 <span class="n">stype</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># check input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_exprtype</span><span class="p">(</span><span class="n">exprtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exprtype</span> <span class="o">=</span> <span class="n">exprtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_idtype</span><span class="p">(</span><span class="n">idtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idtype</span> <span class="o">=</span> <span class="n">idtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_stype</span><span class="p">(</span><span class="n">stype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stype</span> <span class="o">=</span> <span class="n">stype</span>
+        <span class="c1"># end check input</span>
+
+        <span class="c1"># process tissue and signature argument</span>
+        <span class="k">if</span> <span class="n">tissue</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;tissue is not provided, using the RNA age predictor &quot;</span>
+                  <span class="s2">&quot;trained by all tissues automatically.&quot;</span><span class="p">)</span>
+            <span class="n">tissue</span> <span class="o">=</span> <span class="s2">&quot;all_tissues&quot;</span>
+            <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;signature is not provided, using GTExAge signature &quot;</span>
+                      <span class="s2">&quot;automatically.&quot;</span><span class="p">)</span>
+                <span class="n">signature</span> <span class="o">=</span> <span class="s2">&quot;GTExAge&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">signature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sig_set</span><span class="p">(),</span> \
+                    <span class="s2">&quot;signature should be one of DESeq, Pearson, Dev, &quot;</span> \
+                    <span class="s2">&quot;deMagalhaes, GenAge, GTExAge, Peters, all.&quot;</span>
+                <span class="k">if</span> <span class="n">signature</span> <span class="o">==</span> <span class="s2">&quot;DESeq&quot;</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DESeq signature is currently not available for all &quot;</span>
+                          <span class="s2">&quot;tissues, using Pearson signature automatically.&quot;</span><span class="p">)</span>
+                    <span class="n">signature</span> <span class="o">=</span> <span class="s2">&quot;Pearson&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tissue</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;tissue should be a string.&quot;</span>
+            <span class="k">if</span> <span class="n">tissue</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tissue_set</span><span class="p">():</span>
+                <span class="n">tissue</span> <span class="o">=</span> <span class="n">tissue</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;signature is not provided, using DESeq signature &quot;</span>
+                          <span class="s2">&quot;automatically.&quot;</span><span class="p">)</span>
+                    <span class="n">signature</span> <span class="o">=</span> <span class="s2">&quot;DESeq&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">signature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sig_set</span><span class="p">(),</span> \
+                        <span class="s2">&quot;signature should be one of DESeq, Pearson, Dev, &quot;</span> \
+                        <span class="s2">&quot;deMagalhaes, GenAge, GTExAge, Peters, all.&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;the provided tissue was not found, using the RNA age &quot;</span>
+                      <span class="s2">&quot;predictor trained by all tissues automatically.&quot;</span><span class="p">)</span>
+                <span class="n">tissue</span> <span class="o">=</span> <span class="s2">&quot;all_tissues&quot;</span>
+                <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;signature is not provided, using GTExAge &quot;</span>
+                          <span class="s2">&quot;signature automatically.&quot;</span><span class="p">)</span>
+                    <span class="n">signature</span> <span class="o">=</span> <span class="s2">&quot;GTExAge&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">signature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sig_set</span><span class="p">(),</span> \
+                        <span class="s2">&quot;signature should be one of DESeq, Pearson, Dev, &quot;</span> \
+                        <span class="s2">&quot;deMagalhaes, GenAge, GTExAge, Peters, all.&quot;</span>
+                    <span class="k">if</span> <span class="n">signature</span> <span class="o">==</span> <span class="s2">&quot;DESeq&quot;</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DESeq signature is currently not available for &quot;</span>
+                              <span class="s2">&quot;all tissues, using Pearson signature &quot;</span>
+                              <span class="s2">&quot;automatically.&quot;</span><span class="p">)</span>
+                        <span class="n">signature</span> <span class="o">=</span> <span class="s2">&quot;Pearson&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tissue</span> <span class="o">=</span> <span class="n">tissue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_signature</span> <span class="o">=</span> <span class="n">signature</span>
+        <span class="c1"># end: process tissue and signature argument</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">exprtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exprtype</span>
+
+    <span class="nd">@exprtype</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">exprtype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exprtype</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_exprtype</span><span class="p">(</span><span class="n">exprtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exprtype</span> <span class="o">=</span> <span class="n">exprtype</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_check_exprtype</span><span class="p">(</span><span class="n">exprtype</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exprtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;exprtype should be a string.&quot;</span>
+        <span class="k">assert</span> <span class="n">exprtype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="s2">&quot;FPKM&quot;</span><span class="p">],</span> <span class="s2">&quot;exprtype should be count &quot;</span> \
+                                              <span class="s2">&quot;or FPKM.&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">idtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idtype</span>
+
+    <span class="nd">@idtype</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">idtype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idtype</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_idtype</span><span class="p">(</span><span class="n">idtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idtype</span> <span class="o">=</span> <span class="n">idtype</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_check_idtype</span><span class="p">(</span><span class="n">idtype</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;idtype should be a string.&quot;</span>
+        <span class="k">assert</span> <span class="n">idtype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;ensembl.gene&quot;</span><span class="p">,</span> <span class="s2">&quot;entrezgene&quot;</span><span class="p">,</span> <span class="s2">&quot;refseq&quot;</span><span class="p">],</span> \
+            <span class="s2">&quot;idtype should be one of symbol, ensembl.gene, entrezgene&quot;</span> \
+            <span class="s2">&quot; or refseq.&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stype</span>
+
+    <span class="nd">@stype</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">stype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stype</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_stype</span><span class="p">(</span><span class="n">stype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stype</span> <span class="o">=</span> <span class="n">stype</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_check_stype</span><span class="p">(</span><span class="n">stype</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stype</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;stype should be a string.&quot;</span>
+        <span class="n">stype</span> <span class="o">=</span> <span class="n">stype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">stype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="s2">&quot;caucasian&quot;</span><span class="p">],</span> \
+            <span class="s2">&quot;stype should be either all or Caucasian.&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tissue</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tissue</span>
+
+    <span class="nd">@tissue</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">tissue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tissue</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">e</span><span class="o">.</span><span class="n">SetterError</span><span class="p">(</span><span class="s2">&quot;Cannot set tissue, please construct a new &quot;</span>
+                            <span class="s2">&quot;RNAAgeCalc object and use the tissue argument&quot;</span>
+                            <span class="s2">&quot; to set tissue. &quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">signature</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signature</span>
+
+    <span class="nd">@signature</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signature</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">e</span><span class="o">.</span><span class="n">SetterError</span><span class="p">(</span><span class="s2">&quot;Cannot set signature, please construct a new &quot;</span>
+                            <span class="s2">&quot;RNAAgeCalc object and use the signature argument&quot;</span>
+                            <span class="s2">&quot; to set signature. &quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_processlength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rawcount</span><span class="p">,</span> <span class="n">genelength</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">genelength</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+            <span class="n">lengthDB</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">&quot;internal_data&quot;</span><span class="p">,</span>
+                                                <span class="s2">&quot;lengthDB.csv&quot;</span><span class="p">),</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idtype</span> <span class="o">!=</span> <span class="s2">&quot;ensembl.gene&quot;</span><span class="p">:</span>
+                <span class="c1"># convert the gene id to ensembl to match the gene id in gene</span>
+                <span class="c1"># length database</span>
+                <span class="n">mg</span> <span class="o">=</span> <span class="n">mygene</span><span class="o">.</span><span class="n">MyGeneInfo</span><span class="p">()</span>
+                <span class="n">genes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rawcount</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;converting the gene id to ensembl to match the gene id &quot;</span>
+                      <span class="s2">&quot;in gene length database. This may take some time.&quot;</span><span class="p">)</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">querymany</span><span class="p">(</span><span class="n">genes</span><span class="p">,</span> <span class="n">scopes</span><span class="o">=</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span>
+                                    <span class="n">fields</span><span class="o">=</span><span class="s1">&#39;ensembl.gene&#39;</span><span class="p">,</span>
+                                    <span class="n">species</span><span class="o">=</span><span class="s1">&#39;human&#39;</span><span class="p">,</span> <span class="n">returnall</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                    <span class="n">as_dataframe</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">&quot;out&quot;</span><span class="p">]</span>
+                <span class="n">temp1</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">temp</span><span class="p">[</span><span class="s2">&quot;ensembl.gene&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="s2">&quot;ensembl.gene&quot;</span><span class="p">]</span>
+                <span class="n">temp2</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">temp</span><span class="p">[</span><span class="s2">&quot;ensembl&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="s2">&quot;ensembl&quot;</span><span class="p">]</span>
+                <span class="n">index_expand</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">value_expand</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">temp2</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                    <span class="n">index_expand</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">index</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                    <span class="n">value_expand</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;gene&quot;</span><span class="p">],</span> <span class="n">value</span><span class="p">)))</span>
+                <span class="n">temp3</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+                    <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">value_expand</span><span class="p">)),</span>
+                    <span class="n">index</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">index_expand</span><span class="p">)))</span>
+                <span class="n">temp1</span> <span class="o">=</span> <span class="n">temp1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp3</span><span class="p">)</span>
+
+                <span class="n">temp1</span> <span class="o">=</span> <span class="n">temp1</span><span class="p">[</span><span class="n">temp1</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">lengthDB</span><span class="o">.</span><span class="n">index</span><span class="p">)]</span>
+                <span class="n">temp1</span> <span class="o">=</span> <span class="n">temp1</span><span class="p">[</span><span class="o">~</span><span class="n">temp1</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">)]</span>
+                <span class="n">temp1</span> <span class="o">=</span> <span class="n">temp1</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="n">genename</span> <span class="o">=</span> <span class="n">temp1</span><span class="p">[</span><span class="n">rawcount</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+                <span class="n">genename</span><span class="p">[</span><span class="n">genename</span><span class="o">.</span><span class="n">isnull</span><span class="p">()]</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+                <span class="n">genelength</span> <span class="o">=</span> <span class="n">lengthDB</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">genename</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">genelength</span> <span class="o">=</span> <span class="n">lengthDB</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">rawcount</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bool1</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">bool1</span><span class="p">,</span> <span class="s2">&quot;genelength should be a pandas DataFrame, Series, &quot;</span>\
+                          <span class="s2">&quot;numpy array or list.&quot;</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="n">genelength</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">rawcount</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> \
+                    <span class="s2">&quot;The number of rows in genelength should be the same as &quot;</span> \
+                    <span class="s2">&quot;that of rawcount.&quot;</span>
+                <span class="k">if</span> <span class="n">genelength</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;genelength contains more than 1 column, only the&quot;</span>
+                          <span class="s2">&quot; 1st column will be used.&quot;</span><span class="p">)</span>
+                    <span class="n">genelength</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">genelength</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+                <span class="k">assert</span> <span class="n">genelength</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isreal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">genelength</span><span class="p">)</span> <span class="o">==</span> <span class="n">rawcount</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> \
+                    <span class="s2">&quot;The length of genelength should be the same as &quot;</span> \
+                    <span class="s2">&quot;number of rows in rawcount.&quot;</span>
+                <span class="n">genelength</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">genelength</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">genelength</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isreal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genelength</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                           <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">genelength</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">genelength</span><span class="p">)</span> <span class="o">==</span> <span class="n">rawcount</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> \
+                    <span class="s2">&quot;The length of genelength should be the same as &quot;</span> \
+                    <span class="s2">&quot;number of rows in rawcount.&quot;</span>
+                <span class="n">genelength</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">genelength</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">genelength</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;numpy array has more than 1 dimension, only the &quot;</span>
+                          <span class="s2">&quot;1st dimension will be used.&quot;</span><span class="p">)</span>
+                    <span class="n">genelength</span> <span class="o">=</span> <span class="n">genelength</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">isreal</span><span class="p">(</span><span class="n">genelength</span><span class="p">)</span>
+                <span class="n">genelength</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">genelength</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">genelength</span>
+
+    <span class="k">def</span> <span class="nf">_count2FPKM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rawcount</span><span class="p">,</span> <span class="n">genelength</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert gene expression data from raw count to FPKM.</span>
+
+<span class="sd">        This function converts gene expression data from raw count to FPKM.</span>
+
+<span class="sd">        :param rawcount: a pandas DataFrame which contains gene expression</span>
+<span class="sd">        count data.</span>
+
+<span class="sd">        :param genelength: a pandas Series, DataFrame, numpy array, or list</span>
+<span class="sd">        which contains gene length in bp. The size of genelength should be</span>
+<span class="sd">        equal to the number of rows in exprdata. This argument is optional.</span>
+
+<span class="sd">        If using exprtype=&quot;FPKM&quot;, genelength argument is ignored. If using</span>
+<span class="sd">        exprtype=&quot;count&quot;, the raw count will be converted to FPKM. If</span>
+<span class="sd">        genelength is provided, the function will convert raw count to FPKM</span>
+<span class="sd">        according to the user-supplied gene length. Otherwise, gene length</span>
+<span class="sd">        is obtained from the internal database.</span>
+
+<span class="sd">        :return: a pandas DataFrame contains FPKM.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">genelength</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_processlength</span><span class="p">(</span><span class="n">rawcount</span><span class="p">,</span> <span class="n">genelength</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">genelength</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> \
+            <span class="s2">&quot;genelength cannot contain negative value(s) or 0.&quot;</span>
+
+        <span class="n">num_nas</span> <span class="o">=</span> <span class="n">genelength</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">num_nas</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Can&#39;t find gene length for </span><span class="si">{:.2f}% g</span><span class="s2">enes when converting &quot;</span>
+                  <span class="s2">&quot;raw count to FPKM.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_nas</span><span class="o">/</span><span class="n">genelength</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="p">))</span>
+
+        <span class="n">countsum</span> <span class="o">=</span> <span class="n">rawcount</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">sum</span><span class="p">)</span>
+        <span class="n">bg</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rawcount</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">rawcount</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">bg</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">countsum</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="n">wid</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rawcount</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">rawcount</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">wid</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">genelength</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="k">return</span> <span class="n">rawcount</span> <span class="o">/</span> <span class="p">(</span><span class="n">wid</span><span class="o">/</span><span class="mi">1000</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">bg</span><span class="o">/</span><span class="mf">1e6</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RNAAgeCalc.predict_age"><a class="viewcode-back" href="../../racpy.html#racpy.core.RNAAgeCalc.predict_age">[docs]</a>    <span class="k">def</span> <span class="nf">predict_age</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exprdata</span><span class="p">,</span> <span class="n">genelength</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chronage</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate RNA age.</span>
+
+<span class="sd">        This function calculates RNA age based on pre-trained predictors.</span>
+
+<span class="sd">        :param exprdata: a pandas DataFrame which contains gene expression data</span>
+<span class="sd">        with each row represents a gene and each column represents a sample.</span>
+<span class="sd">        Use the argument &quot;exprtype&quot; to specify raw count or FPKM. The index of</span>
+<span class="sd">        &quot;exprdata&quot; should be gene ids and columns names of &quot;exprdata&quot; should</span>
+<span class="sd">        be sample ids.</span>
+
+<span class="sd">        :param genelength: a pandas Series, DataFrame, numpy array, or list</span>
+<span class="sd">        which contains gene length in bp. The size of genelength should be</span>
+<span class="sd">        equal to the number of rows in exprdata. This argument is optional.</span>
+<span class="sd">        If using exprtype=&quot;FPKM&quot;, genelength argument is ignored. If using</span>
+<span class="sd">        exprtype=&quot;count&quot;, the raw count will be converted to FPKM. If</span>
+<span class="sd">        genelength is provided, the function will convert raw count to FPKM</span>
+<span class="sd">        according to the user-supplied gene length. Otherwise, gene length</span>
+<span class="sd">        is obtained from the internal database.</span>
+
+<span class="sd">        :param chronage: a pandas DataFrame which contains the chronological</span>
+<span class="sd">        age of each sample. This argument is optional. If provided, it should</span>
+<span class="sd">        be a DataFrame with 1st column sample id and 2nd column chronological</span>
+<span class="sd">        age. The sample order in chronage doesn&#39;t have to be in the same order</span>
+<span class="sd">        as in exprdata. However, the samples in chronage and exprdata should</span>
+<span class="sd">        be the same. If some samples&#39; chronological age are not available,</span>
+<span class="sd">        users are expected to set the chronological age in chronage to NaN.</span>
+<span class="sd">        If chronage contains more than 2 columns, only the first 2 columns</span>
+<span class="sd">        will be considered. If this argument is not provided, the age</span>
+<span class="sd">        acceleration residual will not be calculated. See package tutorial</span>
+<span class="sd">        for the definition of age acceleration residual.</span>
+
+<span class="sd">        :return: a pandas DataFrame contains RNA age.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check input:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exprdata</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">),</span> \
+            <span class="s2">&quot;exprdata should be a pandas DataFrame.&quot;</span>
+        <span class="k">assert</span> <span class="n">exprdata</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isreal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span>\
+            <span class="s2">&quot;Only numeric values are allowed in the exprdata DataFrame.&quot;</span>
+        <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> \
+            <span class="s2">&quot;The index of exprdata should be gene ids.&quot;</span>
+        <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span> \
+            <span class="s2">&quot;The column names of exprdata should be sample ids.&quot;</span>
+        <span class="k">assert</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()),</span> \
+            <span class="s2">&quot;Duplicated gene names found in exprdata.&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">exprdata</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> \
+            <span class="s2">&quot;Gene expression data cannot contain negative value(s).&quot;</span>
+
+        <span class="k">if</span> <span class="n">chronage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chronage</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">),</span> \
+                <span class="s2">&quot;chronage should be a pandas DataFrame.&quot;</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">chronage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;More than 2 columns are provided in chronage. &quot;</span>
+                      <span class="s2">&quot;Only the first 2 columns will be used.&quot;</span><span class="p">)</span>
+            <span class="c1"># assert ~chronage.applymap(np.isreal).all()[0], \</span>
+            <span class="c1">#    &quot;The 1st column in chronage should be sample ids.&quot;</span>
+            <span class="k">assert</span> <span class="n">chronage</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isreal</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()[</span><span class="mi">1</span><span class="p">],</span> \
+                <span class="s2">&quot;The 2nd column in chronage should be chronological age.&quot;</span>
+            <span class="k">assert</span> <span class="o">~</span><span class="nb">any</span><span class="p">(</span><span class="n">chronage</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()),</span> \
+                <span class="s2">&quot;chronage contains duplicated sample ids.&quot;</span>
+            <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">chronage</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span> <span class="o">==</span> \
+                <span class="nb">set</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> \
+                <span class="s2">&quot;Samples in chronage and exprdata should be the same.&quot;</span>
+            <span class="k">assert</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">chronage</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">),</span> \
+                <span class="s2">&quot;Chronological age contains negative value(s).&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exprtype</span> <span class="o">==</span> <span class="s2">&quot;count&quot;</span><span class="p">:</span>
+            <span class="n">exprdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count2FPKM</span><span class="p">(</span><span class="n">exprdata</span><span class="p">,</span> <span class="n">genelength</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">idtype</span> <span class="o">!=</span> <span class="s2">&quot;symbol&quot;</span><span class="p">:</span>
+            <span class="n">mg</span> <span class="o">=</span> <span class="n">mygene</span><span class="o">.</span><span class="n">MyGeneInfo</span><span class="p">()</span>
+            <span class="n">genes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">querymany</span><span class="p">(</span><span class="n">genes</span><span class="p">,</span> <span class="n">scopes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">idtype</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span>
+                                <span class="n">species</span><span class="o">=</span><span class="s1">&#39;human&#39;</span><span class="p">,</span> <span class="n">returnall</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">as_dataframe</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">&quot;out&quot;</span><span class="p">]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">temp</span><span class="p">[</span><span class="s2">&quot;symbol&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span> <span class="s2">&quot;symbol&quot;</span><span class="p">]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="o">~</span><span class="n">temp</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">)]</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">genesymbol</span> <span class="o">=</span> <span class="n">temp</span><span class="p">[</span><span class="n">exprdata</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">genesymbol</span><span class="p">[</span><span class="n">genesymbol</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+            <span class="n">exprdata</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">genesymbol</span>
+
+        <span class="n">location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stype</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+            <span class="n">tempPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">&quot;internal_data&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;coef_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tissue</span><span class="p">,</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">_signature</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tempPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">&quot;internal_data&quot;</span><span class="p">,</span> <span class="s2">&quot;Caucasian&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;coef_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tissue</span><span class="p">,</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">_signature</span><span class="p">))</span>
+
+        <span class="n">sig_internal</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">tempPath</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">genes_required</span> <span class="o">=</span> <span class="n">sig_internal</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">sig_in_expr</span> <span class="o">=</span> <span class="n">genes_required</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="c1"># full NA row</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">~</span><span class="n">sig_in_expr</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:.2f}% g</span><span class="s2">enes in the gene signature are not included in &quot;</span>
+                  <span class="s2">&quot;the supplied gene expression.&quot;</span>
+                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">~</span><span class="n">sig_in_expr</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">genes_required</span><span class="p">)</span><span class="o">*</span><span class="mi">100</span><span class="p">))</span>
+
+            <span class="c1"># impute the gene expression in the log scale</span>
+            <span class="n">tempmat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">exprdata</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+                                   <span class="n">index</span><span class="o">=</span><span class="n">genes_required</span><span class="p">[</span><span class="o">~</span><span class="n">sig_in_expr</span><span class="p">])</span>
+
+            <span class="n">exprdata_withNA</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">exprdata</span><span class="p">,</span> <span class="n">tempmat</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">exprdata_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">exprdata_withNA</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">ind1</span> <span class="o">=</span> <span class="n">exprdata_log</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ind2</span> <span class="o">=</span> <span class="o">~</span><span class="n">exprdata_log</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">exprdata_log</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">ind1</span> <span class="o">|</span> <span class="n">ind2</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> \
+                <span class="n">exprdata_log</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">ind1</span> <span class="o">|</span> <span class="n">ind2</span><span class="p">),</span> <span class="p">:]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">exprdata_log</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">exprdata_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">exprdata</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># check partial NA</span>
+        <span class="k">if</span> <span class="o">~</span><span class="n">exprdata_log</span><span class="o">.</span><span class="n">notnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="c1"># impute the gene expression in the log scale</span>
+            <span class="n">imputer</span> <span class="o">=</span> <span class="n">KNNImputer</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">exprdata_log</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                                 <span class="n">row_max_missing</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">col_max_missing</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">X_imputed</span> <span class="o">=</span> <span class="n">imputer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">exprdata_log</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
+            <span class="n">exprdata_log_impute</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X_imputed</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+            <span class="n">exprdata_log_impute</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">exprdata_log</span><span class="o">.</span><span class="n">index</span>
+            <span class="n">exprdata_sub</span> <span class="o">=</span> <span class="n">exprdata_log_impute</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">genes_required</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">exprdata_sub</span> <span class="o">=</span> <span class="n">exprdata_log</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">genes_required</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="n">RNAAge</span> <span class="o">=</span> <span class="n">exprdata_sub</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">sig_internal</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]))</span> <span class="o">+</span>
+            <span class="n">sig_internal</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">exprdata</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[</span><span class="s2">&quot;RNAAge&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">RNAAge</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">chronage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chronage</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">chronage</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;ChronAge&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chronage</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># if sample size is too small, age acceleration residual</span>
+            <span class="c1"># cannot be calculated</span>
+            <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">30</span><span class="p">:</span>
+                <span class="n">Y</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;RNAAge&quot;</span><span class="p">]</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;ChronAge&quot;</span><span class="p">]</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">add_constant</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">OLS</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+                <span class="n">res</span><span class="p">[</span><span class="s2">&quot;AgeAccelResid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">resid</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_tissue_set</span><span class="p">():</span>
+        <span class="k">return</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;adipose_tissue&quot;</span><span class="p">,</span> <span class="s2">&quot;adrenal_gland&quot;</span><span class="p">,</span> <span class="s2">&quot;blood&quot;</span><span class="p">,</span> <span class="s2">&quot;blood_vessel&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;brain&quot;</span><span class="p">,</span> <span class="s2">&quot;breast&quot;</span><span class="p">,</span> <span class="s2">&quot;colon&quot;</span><span class="p">,</span> <span class="s2">&quot;esophagus&quot;</span><span class="p">,</span> <span class="s2">&quot;heart&quot;</span><span class="p">,</span> <span class="s2">&quot;liver&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;lung&quot;</span><span class="p">,</span> <span class="s2">&quot;muscle&quot;</span><span class="p">,</span> <span class="s2">&quot;nerve&quot;</span><span class="p">,</span> <span class="s2">&quot;ovary&quot;</span><span class="p">,</span> <span class="s2">&quot;pancreas&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;pituitary&quot;</span><span class="p">,</span> <span class="s2">&quot;prostate&quot;</span><span class="p">,</span> <span class="s2">&quot;salivary_gland&quot;</span><span class="p">,</span> <span class="s2">&quot;skin&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;small_intestine&quot;</span><span class="p">,</span> <span class="s2">&quot;spleen&quot;</span><span class="p">,</span> <span class="s2">&quot;stomach&quot;</span><span class="p">,</span> <span class="s2">&quot;testis&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;thyroid&quot;</span><span class="p">,</span> <span class="s2">&quot;uterus&quot;</span><span class="p">,</span> <span class="s2">&quot;vagina&quot;</span><span class="p">,</span> <span class="s2">&quot;all_tissues&quot;</span><span class="p">])</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_sig_set</span><span class="p">():</span>
+        <span class="k">return</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;DESeq&quot;</span><span class="p">,</span> <span class="s2">&quot;Pearson&quot;</span><span class="p">,</span> <span class="s2">&quot;Dev&quot;</span><span class="p">,</span> <span class="s2">&quot;deMagalhaes&quot;</span><span class="p">,</span> <span class="s2">&quot;GenAge&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;GTExAge&quot;</span><span class="p">,</span> <span class="s2">&quot;Peters&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;RNAAgeCalc(tissue=</span><span class="si">%r</span><span class="s2">, exprtype=</span><span class="si">%r</span><span class="s2">, idtype=</span><span class="si">%r</span><span class="s2">, stype=</span><span class="si">%r</span><span class="s2">,</span>
+<span class="s2">signature=</span><span class="si">%r</span><span class="s2">)&quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tissue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">idtype</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">signature</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;RNAAgeCalc</span>
+<span class="s2">tissue: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">exprtype: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">idtype: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">stype: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">signature: </span><span class="si">{}</span><span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tissue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">idtype</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">stype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">signature</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">racpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">racpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">racpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Xu Ren.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

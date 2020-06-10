@@ -1,0 +1,386 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Usage &#8212; racpy 0.1.4 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="racpy" href="modules.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>It has been shown that both DNA methylation and RNA transcription are linked
+to chronological age and age related diseases. Several estimators have
+been developed to predict human aging from DNA level and RNA level. Most of the
+human transcriptional age predictor are based on microarray data and limited
+to only a few tissues. To date, transcriptional studies on aging using
+RNASeq data from different human tissues is limited. The aim of this package
+is to provide a tool for across-tissue and tissue-specific transcriptional age
+calculation based on Genotype-Tissue Expression (GTEx) RNASeq data
+<a class="footnote-reference brackets" href="#id9" id="id1">1</a>.</p>
+</div>
+<div class="section" id="description-of-rnaseq-age-calculator">
+<h2>Description of RNASeq age calculator<a class="headerlink" href="#description-of-rnaseq-age-calculator" title="Permalink to this headline">¶</a></h2>
+<p>We utilized the GTEx data to construct our across-tissue and tissue-specific
+transcriptional age calculator. GTEx is a public available genetic database
+for studying tissue specific gene expression and regulation. GTEx V6 release
+contains gene expression data at gene, exon, and transcript level of 9,662
+samples from 30 different tissues. To avoid the influence of tumor on gene
+expression, the 102 tumor samples from GTEx V6 release are dropped and
+the remaining 9,560 samples were used in the subsequent analysis. To
+facilitate integrated analysis and direct comparison of multiple datasets,
+we utilized recount2 <a class="footnote-reference brackets" href="#id10" id="id2">2</a> version of GTEx data, where
+all samples were processed with the same analytical pipeline. FPKM values
+were calculated for each individual sample using <cite>getRPKM</cite> function in
+Bioconductor package <a class="reference external" href="http://bioconductor.org/packages/release/bioc/html/recount.html">recount</a>.</p>
+<p>For the tissue-specific RNASeq age calculator, elastic net
+<a class="footnote-reference brackets" href="#id11" id="id3">3</a> algorithm was used to train the predictors for each
+individual tissue. Chronological age was response variable whereas logarithm
+transformed FPKM of genes were predictors. The across-tissue calculator was
+constructed by first performing differential expression analysis on the
+RNASeq count data for each individual tissue. To identify genes consistently
+differentially expressed across tissues, we adapted the binomial test
+discussed in de Magalhaes et al. <a class="footnote-reference brackets" href="#id12" id="id4">4</a> to find the genes with the
+largest number of age-related signals. A detailed explanation can be found
+in our paper.</p>
+</div>
+<div class="section" id="usage-of-rnaseq-age-calculator">
+<h2>Usage of RNASeq age calculator<a class="headerlink" href="#usage-of-rnaseq-age-calculator" title="Permalink to this headline">¶</a></h2>
+<p>To use racpy in a project:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">racpy</span> <span class="kn">import</span> <span class="n">RNAAgeCalc</span>
+</pre></div>
+</div>
+<p>Then construct an <cite>RNAAgeCalc</cite> object (here we use “brain” as an example):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rac_obj</span> <span class="o">=</span> <span class="n">RNAAgeCalc</span><span class="p">(</span><span class="n">tissue</span> <span class="o">=</span> <span class="s2">&quot;brain&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next we use an example of FPKM data to make prediction:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">racpy</span> <span class="kn">import</span> <span class="n">fpkm</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">rac_obj</span><span class="o">.</span><span class="n">predict_age</span><span class="p">(</span><span class="n">fpkm</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here we explain the options in <cite>RNAAgeCalc</cite>.</p>
+<div class="section" id="tissue">
+<h3>tissue<a class="headerlink" href="#tissue" title="Permalink to this headline">¶</a></h3>
+<p><cite>tissue</cite> is a string indicates which tissue the gene expression data is
+obtained from. Users are expected to provide one of the following tissues.
+If the tissue argument is not provided or the provided tissue is not in this
+list, the age predictor trained on all tissues will be used to calculate
+RNA age.</p>
+<ul class="simple">
+<li><p>adipose_tissue</p></li>
+<li><p>adrenal_gland</p></li>
+<li><p>blood</p></li>
+<li><p>blood_vessel</p></li>
+<li><p>brain</p></li>
+<li><p>breast</p></li>
+<li><p>colon</p></li>
+<li><p>esophagus</p></li>
+<li><p>heart</p></li>
+<li><p>liver</p></li>
+<li><p>lung</p></li>
+<li><p>muscle</p></li>
+<li><p>nerve</p></li>
+<li><p>ovary</p></li>
+<li><p>pancreas</p></li>
+<li><p>pituitary</p></li>
+<li><p>prostate</p></li>
+<li><p>salivary_gland</p></li>
+<li><p>skin</p></li>
+<li><p>small_intestine</p></li>
+<li><p>spleen</p></li>
+<li><p>stomach</p></li>
+<li><p>testis</p></li>
+<li><p>thyroid</p></li>
+<li><p>uterus</p></li>
+<li><p>vagina</p></li>
+</ul>
+</div>
+<div class="section" id="exprtype">
+<h3>exprtype<a class="headerlink" href="#exprtype" title="Permalink to this headline">¶</a></h3>
+<p><cite>exprtype</cite> is either “count” or “FPKM”. If <cite>exprtype</cite> is count, the
+expression data will be converted to FPKM by the internal function and
+the calculator will be applied on FPKM data. When calculating FPKM, by default
+gene length is obtained from the package’s internal database. The internal
+gene length information was obtained from recount2. However, users are able
+to provide their own gene length information by using <cite>genelength</cite> argument
+in <cite>predict_age</cite> function (see below).</p>
+</div>
+<div class="section" id="idtype">
+<h3>idtype<a class="headerlink" href="#idtype" title="Permalink to this headline">¶</a></h3>
+<p><cite>idtype</cite> is a string which indicates the gene id type in <cite>exprdata</cite>. Default
+is “symbol”. The following id types are supported.</p>
+<ul class="simple">
+<li><p>symbol</p></li>
+<li><p>ensembl.gene</p></li>
+<li><p>entrezgene</p></li>
+<li><p>refseq</p></li>
+</ul>
+</div>
+<div class="section" id="stype">
+<h3>stype<a class="headerlink" href="#stype" title="Permalink to this headline">¶</a></h3>
+<p><cite>stype</cite> is a string which specifies which version of pre-trained calculators
+to be used. Two versions are provided. If <cite>stype=”all”</cite>, the calculator
+trained on samples from all races (American Indian/Alaska Native, Asian,
+Black/African American, and Caucasian) will be used. If <cite>stype=”Caucasian”</cite>,
+the calculator trained on Caucasian samples only will be used. We found that
+RNA Age signatures could be different in different races (see our paper for
+details). Thus we provide both the universal calculator and race specific
+calculator. The race specific calculator for American Indian/Alaska Native,
+Asian, or Black/African American are not provided due to the small sample
+size in GTEx data.</p>
+</div>
+<div class="section" id="signature">
+<h3>signature<a class="headerlink" href="#signature" title="Permalink to this headline">¶</a></h3>
+<p><cite>signature</cite> is a string which indicate the age signature to use when
+calculating RNA age. This argument is not required.</p>
+<p>In the case that this argument is not provided, if <cite>tissue</cite> argument is also
+provided and the tissue is in the list above, the tissue specific age
+signature given by our DESeq2 analysis result on GTEx data will be used.
+Otherwise, the across tissue signature “GTExAge” will be used.</p>
+<p>In the case that this argument is provided, it should be one of the following
+signatures.</p>
+<ul class="simple">
+<li><p>DESeq2. DESeq2 signature was obtained by performing differential expression
+analysis on each tissue and select the top differential expressed genes.</p></li>
+<li><p>Pearson. Pearson signature represents the genes highly correlated with
+chronological age by Pearson correlation.</p></li>
+<li><p>Dev. Dev signature contains genes with large variation in expression across
+samples. We adapted the gene selection strategy discussed in <a class="footnote-reference brackets" href="#id13" id="id5">5</a>, which is
+a gene must have at least a <span class="math notranslate nohighlight">\(t_1\)</span>-fold difference in expression between
+any two samples in the training set and at least one sample have expression
+level &gt; <span class="math notranslate nohighlight">\(t_2\)</span> FPKM to be included in the prediction models. <span class="math notranslate nohighlight">\(t_1\)</span>
+and <span class="math notranslate nohighlight">\(t_2\)</span> (typically 5 or 10) are thresholds to control the degree of
+deviance of the genes. We used <span class="math notranslate nohighlight">\(t_1 = t_2 = 10\)</span> for most tissues.
+For some tissues with large sample size, in order to maximize the prediction
+accuracy while maintaining low computation cost, we increased <span class="math notranslate nohighlight">\(t_1\)</span> and
+<span class="math notranslate nohighlight">\(t_2\)</span> such that the number of genes retained in the model is between
+2,000 and 7,000.</p></li>
+<li><p>deMagalhaes. deMagalhaes signature contains the 73 age-related genes by <a class="footnote-reference brackets" href="#id12" id="id6">4</a>.</p></li>
+<li><p>GenAge. GenAge signature contains the 307 age-related genes in the Ageing
+Gene Database <a class="footnote-reference brackets" href="#id14" id="id7">6</a>.</p></li>
+<li><p>GTExAge. GTExAge signature represents the genes consistently differentially
+expressed across tissues discussed in our paper.</p></li>
+<li><p>Peters. Peters signature contains the 1,497 genes differentially expressed
+with age discussed in <a class="footnote-reference brackets" href="#id15" id="id8">7</a>.</p></li>
+<li><p>all. “all” represents all the genes used when constructing the RNAAge
+calculator.</p></li>
+</ul>
+<p>If the genes in <cite>exprdata</cite> do not cover all the genes in the signature,
+imputation will be made automatically by the <cite>KNNImputer</cite> function in
+<a class="reference external" href="https://pypi.org/project/missingpy/">missingpy</a>.</p>
+<p>Below are the options for the <cite>predict_age</cite> function.</p>
+</div>
+<div class="section" id="exprdata">
+<h3>exprdata<a class="headerlink" href="#exprdata" title="Permalink to this headline">¶</a></h3>
+<p><cite>exprdata</cite> a pandas DataFrame which contains gene expression data
+with each row represents a gene and each column represents a sample. Users are
+expected to use the argument “exprtype” to specify raw count or FPKM. The index
+of “exprdata” should be gene ids and columns names of “exprdata” should be sample ids.
+Here is an example of FPKM expression data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">racpy</span> <span class="kn">import</span> <span class="n">fpkm</span>
+<span class="n">fpkm</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="genelength">
+<h3>genelength<a class="headerlink" href="#genelength" title="Permalink to this headline">¶</a></h3>
+<p><cite>genelength</cite> is a pandas Series, DataFrame, numpy array, or list which contains gene
+length in bp. The size of <cite>genelength</cite> should be equal to the number of rows in <cite>exprdata</cite>.
+This argument is optional. When using <cite>exprtype = “FPKM”</cite>, <cite>genelength</cite> argument is ignored.
+When using <cite>exprtype = “count”</cite>, the raw count will be converted to FPKM. If <cite>genelength</cite>
+is provided, the function will convert raw count to FPKM based on the user-supplied gene
+length. Otherwise, gene length is obtained from the internal database.</p>
+</div>
+<div class="section" id="chronage">
+<h3>chronage<a class="headerlink" href="#chronage" title="Permalink to this headline">¶</a></h3>
+<p><cite>chronage</cite> is a pandas DataFrame which contains the chronological age of each
+sample. This argument is optional.</p>
+<p>If provided, it should be a DataFrame with 1st column sample id and 2nd column
+chronological age. The sample order in <cite>chronage</cite> doesn’t have to be in the
+same order as in <cite>exprdata</cite>. However, the samples in <cite>chronage</cite> and <cite>exprdata</cite>
+should be the same. If some samples’ chronological age are not available,
+users are expected to set the chronological age in <cite>chronage</cite> to NaN. If
+<cite>chronage</cite> contains more than 2 columns, only the first 2 columns will be
+considered. If more than 30 samples’ chronological age are available, age
+acceleration residual will be calculated. Age acceleration residual is
+defined as the residual of linear regression with RNASeq age as dependent
+variable and chronological age as independent variable.</p>
+<p>If this argument is not provided, the age acceleration residual will not be
+calculated.</p>
+</div>
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>This example is just for illustration purpose. It does not represent any real data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">racpy</span> <span class="kn">import</span> <span class="n">RNAAgeCalc</span>
+<span class="kn">from</span> <span class="nn">racpy</span> <span class="kn">import</span> <span class="n">fpkm</span>
+<span class="c1"># construct a gene expression data</span>
+<span class="n">fpkm_large</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">fpkm</span><span class="p">,</span> <span class="n">fpkm</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">fpkm</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span> <span class="n">fpkm</span><span class="o">+</span><span class="mi">3</span><span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">fpkm_large</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">fpkm_large</span><span class="p">,</span> <span class="n">fpkm_large</span><span class="p">,</span> <span class="n">fpkm_large</span><span class="p">,</span> <span class="n">fpkm_large</span><span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">fpkm_large</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sample&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">)]</span>
+<span class="c1"># construct the samples&#39; chronological age</span>
+<span class="n">chronage2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+<span class="n">chronage2</span><span class="p">[</span><span class="s2">&quot;sampleid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fpkm_large</span><span class="o">.</span><span class="n">columns</span>
+<span class="n">chronage2</span><span class="p">[</span><span class="s2">&quot;age&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">31</span><span class="p">,</span> <span class="mi">63</span><span class="p">)</span>
+
+<span class="n">rac_obj2</span> <span class="o">=</span> <span class="n">RNAAgeCalc</span><span class="p">(</span><span class="n">tissue</span> <span class="o">=</span> <span class="s2">&quot;brain&quot;</span><span class="p">)</span>
+<span class="n">res2</span> <span class="o">=</span> <span class="n">rac_obj2</span><span class="o">.</span><span class="n">predict_age</span><span class="p">(</span><span class="n">exprdata</span><span class="o">=</span><span class="n">fpkm_large</span><span class="p">,</span> <span class="n">chronage</span><span class="o">=</span><span class="n">chronage2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">res2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="visualization">
+<h2>Visualization<a class="headerlink" href="#visualization" title="Permalink to this headline">¶</a></h2>
+<p>We suggest visualizing the results by plotting RNAAge vs chronological age.
+This can be done by calling <cite>makeplot</cite> function and passing in the DataFrame
+returned by <cite>predict_age</cite> function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">racpy</span> <span class="kn">import</span> <span class="n">makeplot</span>
+<span class="n">makeplot</span><span class="p">(</span><span class="n">res2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<dl class="footnote brackets">
+<dt class="label" id="id9"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>Lonsdale, John, et al. “The genotype-tissue expression (GTEx) project.” Nature genetics 45.6 (2013): 580.</p>
+</dd>
+<dt class="label" id="id10"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>Collado-Torres, Leonardo, et al. “Reproducible RNA-seq analysis using recount2.” Nature biotechnology 35.4 (2017): 319-321.</p>
+</dd>
+<dt class="label" id="id11"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>Zou, Hui, and Trevor Hastie. “Regularization and variable selection via the elastic net.” Journal of the royal statistical society: series B (statistical methodology) 67.2 (2005): 301-320.</p>
+</dd>
+<dt class="label" id="id12"><span class="brackets">4</span><span class="fn-backref">(<a href="#id4">1</a>,<a href="#id6">2</a>)</span></dt>
+<dd><p>De Magalhães, João Pedro, João Curado, and George M. Church. “Meta-analysis of age-related gene expression profiles identifies common signatures of aging.” Bioinformatics 25.7 (2009): 875-881.</p>
+</dd>
+<dt class="label" id="id13"><span class="brackets"><a class="fn-backref" href="#id5">5</a></span></dt>
+<dd><p>Fleischer, Jason G., et al. “Predicting age from the transcriptome of human dermal fibroblasts.” Genome biology 19.1 (2018): 221.</p>
+</dd>
+<dt class="label" id="id14"><span class="brackets"><a class="fn-backref" href="#id7">6</a></span></dt>
+<dd><p>de Magalhaes, Joao Pedro, and Olivier Toussaint. “GenAge: a genomic and proteomic network map of human ageing.” FEBS letters 571.1-3 (2004): 243-247.</p>
+</dd>
+<dt class="label" id="id15"><span class="brackets"><a class="fn-backref" href="#id8">7</a></span></dt>
+<dd><p>Peters, Marjolein J., et al. “The transcriptional landscape of age in human peripheral blood.” Nature communications 6.1 (2015): 1-14.</p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">racpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="readme.html">racpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#description-of-rnaseq-age-calculator">Description of RNASeq age calculator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-of-rnaseq-age-calculator">Usage of RNASeq age calculator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visualization">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">racpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">History</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="installation.html" title="previous chapter">Installation</a></li>
+      <li>Next: <a href="modules.html" title="next chapter">racpy</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Xu Ren.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/usage.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

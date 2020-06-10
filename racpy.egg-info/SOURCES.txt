@@ -14,8 +14,13 @@ docs/history.rst
 docs/index.rst
 docs/installation.rst
 docs/make.bat
+docs/modules.rst
+docs/racpy.rst
 docs/readme.rst
 docs/usage.rst
+docs/_build/html/_static/file.png
+docs/_build/html/_static/minus.png
+docs/_build/html/_static/plus.png
 racpy/__init__.py
 racpy/cli.py
 racpy/core.py

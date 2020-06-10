@@ -1,0 +1,303 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>racpy package &#8212; racpy 0.1.4 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Contributing" href="contributing.html" />
+    <link rel="prev" title="racpy" href="modules.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="racpy-package">
+<h1>racpy package<a class="headerlink" href="#racpy-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-racpy.cli">
+<span id="racpy-cli-module"></span><h2>racpy.cli module<a class="headerlink" href="#module-racpy.cli" title="Permalink to this headline">¶</a></h2>
+<p>Console script for racpy.</p>
+</div>
+<div class="section" id="module-racpy.core">
+<span id="racpy-core-module"></span><h2>racpy.core module<a class="headerlink" href="#module-racpy.core" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="racpy.core.RNAAgeCalc">
+<em class="property">class </em><code class="sig-prename descclassname">racpy.core.</code><code class="sig-name descname">RNAAgeCalc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tissue</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">exprtype</span><span class="o">=</span><span class="default_value">'FPKM'</span></em>, <em class="sig-param"><span class="n">idtype</span><span class="o">=</span><span class="default_value">'symbol'</span></em>, <em class="sig-param"><span class="n">stype</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">signature</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/racpy/core.html#RNAAgeCalc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#racpy.core.RNAAgeCalc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Calculate RNA age.</p>
+<p>Attributes:
+- tissue: a string indicates which tissue the gene expression data
+is obtained from. Users are expected to provide one of the these tissues:</p>
+<p>adipose_tissue, adrenal_gland, blood, blood_vessel, brain, breast, colon,
+esophagus, heart, liver, lung, muscle, nerve, ovary, pancreas, pituitary,
+prostate, salivary_gland, skin, small_intestine, spleen, stomach, testis,
+thyroid, uterus, vagina.</p>
+<p>If the tissue argument is not provide or the provided tissue is not in
+this list, then the age predictor trained on all tissues will be used to
+calculate RNA age.</p>
+<ul class="simple">
+<li><p>exprtype: either “count” or “FPKM”. Default is “FPKM”. For RPKM data,</p></li>
+</ul>
+<p>please use exprtype=”FPKM”.</p>
+<ul class="simple">
+<li><p>idtype: a string which indicates the gene id type in “exprdata”. It</p></li>
+</ul>
+<p>should be one of “symbol”, “ensembl.gene”, “entrezgene” or “refseq”.
+Default is “symbol”.</p>
+<ul class="simple">
+<li><p>stype: a string which specifies which version of pre-trained</p></li>
+</ul>
+<p>calculators to be used. It should be either “all” or “Caucasian”. “all”
+means samples from all races (American Indian/Alaska Native, Asian,
+Black/African American, and Caucasian) are used to obtain the pre-trained
+calculator. “Caucasian” means only the Caucasian samples are used to build
+up the pre-trained calculator. Default is “all”.</p>
+<ul class="simple">
+<li><p>signature: a string which indicate the age signature to use when</p></li>
+</ul>
+<p>calculating RNA age. This argument is not required.</p>
+<p>In the case that this argument is not provided, if <cite>tissue</cite> argument is
+also provided and the tissue is in the list above, the tissue specific age
+signature given by our DESeq2 analysis result on GTEx data will be used.
+Otherwise, the across tissue signature “GTExAge” will be used.</p>
+<p>In the case that this argument is provided, it should be one of the
+following signatures. A detailed description of the meaning of these
+signatures is given in the package tutorial.</p>
+<p>DESeq, Pearson, Dev, deMagalhaes, GenAge, GTExAge, Peters, all</p>
+<dl class="py method">
+<dt id="racpy.core.RNAAgeCalc.exprtype">
+<em class="property">property </em><code class="sig-name descname">exprtype</code><a class="headerlink" href="#racpy.core.RNAAgeCalc.exprtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="racpy.core.RNAAgeCalc.idtype">
+<em class="property">property </em><code class="sig-name descname">idtype</code><a class="headerlink" href="#racpy.core.RNAAgeCalc.idtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="racpy.core.RNAAgeCalc.predict_age">
+<code class="sig-name descname">predict_age</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exprdata</span></em>, <em class="sig-param"><span class="n">genelength</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">chronage</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/racpy/core.html#RNAAgeCalc.predict_age"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#racpy.core.RNAAgeCalc.predict_age" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate RNA age.</p>
+<p>This function calculates RNA age based on pre-trained predictors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>exprdata</strong> – a pandas DataFrame which contains gene expression data</p>
+</dd>
+</dl>
+<p>with each row represents a gene and each column represents a sample.
+Use the argument “exprtype” to specify raw count or FPKM. The index of
+“exprdata” should be gene ids and columns names of “exprdata” should
+be sample ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>genelength</strong> – a pandas Series, DataFrame, numpy array, or list</p>
+</dd>
+</dl>
+<p>which contains gene length in bp. The size of genelength should be
+equal to the number of rows in exprdata. This argument is optional.
+If using exprtype=”FPKM”, genelength argument is ignored. If using
+exprtype=”count”, the raw count will be converted to FPKM. If
+genelength is provided, the function will convert raw count to FPKM
+according to the user-supplied gene length. Otherwise, gene length
+is obtained from the internal database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>chronage</strong> – a pandas DataFrame which contains the chronological</p>
+</dd>
+</dl>
+<p>age of each sample. This argument is optional. If provided, it should
+be a DataFrame with 1st column sample id and 2nd column chronological
+age. The sample order in chronage doesn’t have to be in the same order
+as in exprdata. However, the samples in chronage and exprdata should
+be the same. If some samples’ chronological age are not available,
+users are expected to set the chronological age in chronage to NaN.
+If chronage contains more than 2 columns, only the first 2 columns
+will be considered. If this argument is not provided, the age
+acceleration residual will not be calculated. See package tutorial
+for the definition of age acceleration residual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a pandas DataFrame contains RNA age.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="racpy.core.RNAAgeCalc.signature">
+<em class="property">property </em><code class="sig-name descname">signature</code><a class="headerlink" href="#racpy.core.RNAAgeCalc.signature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="racpy.core.RNAAgeCalc.stype">
+<em class="property">property </em><code class="sig-name descname">stype</code><a class="headerlink" href="#racpy.core.RNAAgeCalc.stype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="racpy.core.RNAAgeCalc.tissue">
+<em class="property">property </em><code class="sig-name descname">tissue</code><a class="headerlink" href="#racpy.core.RNAAgeCalc.tissue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-racpy.exceptions">
+<span id="racpy-exceptions-module"></span><h2>racpy.exceptions module<a class="headerlink" href="#module-racpy.exceptions" title="Permalink to this headline">¶</a></h2>
+<dl class="py exception">
+<dt id="racpy.exceptions.Error">
+<em class="property">exception </em><code class="sig-prename descclassname">racpy.exceptions.</code><code class="sig-name descname">Error</code><a class="reference internal" href="_modules/racpy/exceptions.html#Error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#racpy.exceptions.Error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Base-class for all exceptions raised by this module</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt id="racpy.exceptions.SetterError">
+<em class="property">exception </em><code class="sig-prename descclassname">racpy.exceptions.</code><code class="sig-name descname">SetterError</code><a class="reference internal" href="_modules/racpy/exceptions.html#SetterError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#racpy.exceptions.SetterError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#racpy.exceptions.Error" title="racpy.exceptions.Error"><code class="xref py py-class docutils literal notranslate"><span class="pre">racpy.exceptions.Error</span></code></a></p>
+<p>There was a problem with the use of setter</p>
+</dd></dl>
+
+</div>
+<div class="section" id="racpy-internal-data-module">
+<h2>racpy.internal_data module<a class="headerlink" href="#racpy-internal-data-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-racpy.makeplot">
+<span id="racpy-makeplot-module"></span><h2>racpy.makeplot module<a class="headerlink" href="#module-racpy.makeplot" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="racpy.makeplot.makeplot">
+<code class="sig-prename descclassname">racpy.makeplot.</code><code class="sig-name descname">makeplot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">res</span></em>, <em class="sig-param"><span class="n">main</span><span class="o">=</span><span class="default_value">'RNA age vs chronological age'</span></em>, <em class="sig-param"><span class="n">xlab</span><span class="o">=</span><span class="default_value">'chronological age'</span></em>, <em class="sig-param"><span class="n">ylab</span><span class="o">=</span><span class="default_value">'RNA Age'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/racpy/makeplot.html#makeplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#racpy.makeplot.makeplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make plot to visualize RNA age.</p>
+<p>This function makes plots to visualize the relationship between
+chronological age and RNA age.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>res</strong> – a pandas DataFrame returned by predict_age function.</p>
+</dd>
+</dl>
+<p>If the chronological age is not provided when using predict_age
+function, visulization cannot be made.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>main</strong> – a string which specifies the title of the plot</p></li>
+<li><p><strong>xlab</strong> – a string which specifies label of x-axis</p></li>
+<li><p><strong>ylab</strong> – label of y-axis</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a scatter plot</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-racpy">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-racpy" title="Permalink to this headline">¶</a></h2>
+<p>Top-level package for racpy.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">racpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="readme.html">racpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">racpy</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">racpy package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">History</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">racpy</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">racpy</a></li>
+      <li>Next: <a href="contributing.html" title="next chapter">Contributing</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Xu Ren.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/racpy.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
