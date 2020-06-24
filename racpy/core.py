@@ -50,7 +50,7 @@ class RNAAgeCalc(object):
     following signatures. A detailed description of the meaning of these
     signatures is given in the package tutorial.
 
-    DESeq, Pearson, Dev, deMagalhaes, GenAge, GTExAge, Peters, all
+    DESeq2, Pearson, Dev, deMagalhaes, GenAge, GTExAge, Peters, all
     '''
 
     def __init__(self, tissue=None, exprtype="FPKM", idtype="symbol",
@@ -77,10 +77,12 @@ class RNAAgeCalc(object):
                 signature = "GTExAge"
             else:
                 assert signature in self._sig_set(), \
-                    "signature should be one of DESeq, Pearson, Dev, " \
+                    "signature should be one of DESeq2, Pearson, Dev, " \
                     "deMagalhaes, GenAge, GTExAge, Peters, all."
                 if signature == "DESeq":
-                    print("DESeq signature is currently not available for all "
+                    signature = "DESeq2"
+                if signature == "DESeq2":
+                    print("DESeq2 signature is currently not available for all "
                           "tissues, using Pearson signature automatically.")
                     signature = "Pearson"
         else:
@@ -88,13 +90,15 @@ class RNAAgeCalc(object):
             if tissue.lower() in self._tissue_set():
                 tissue = tissue.lower()
                 if signature is None:
-                    print("signature is not provided, using DESeq signature "
+                    print("signature is not provided, using DESeq2 signature "
                           "automatically.")
-                    signature = "DESeq"
+                    signature = "DESeq2"
                 else:
                     assert signature in self._sig_set(), \
-                        "signature should be one of DESeq, Pearson, Dev, " \
+                        "signature should be one of DESeq2, Pearson, Dev, " \
                         "deMagalhaes, GenAge, GTExAge, Peters, all."
+                    if signature == "DESeq":
+                        signature = "DESeq2"
             else:
                 print("the provided tissue was not found, using the RNA age "
                       "predictor trained by all tissues automatically.")
@@ -105,10 +109,12 @@ class RNAAgeCalc(object):
                     signature = "GTExAge"
                 else:
                     assert signature in self._sig_set(), \
-                        "signature should be one of DESeq, Pearson, Dev, " \
+                        "signature should be one of DESeq2, Pearson, Dev, " \
                         "deMagalhaes, GenAge, GTExAge, Peters, all."
                     if signature == "DESeq":
-                        print("DESeq signature is currently not available for "
+                        signature = "DESeq2"
+                    if signature == "DESeq2":
+                        print("DESeq2 signature is currently not available for "
                               "all tissues, using Pearson signature "
                               "automatically.")
                         signature = "Pearson"
@@ -457,8 +463,8 @@ class RNAAgeCalc(object):
 
     @staticmethod
     def _sig_set():
-        return set(["DESeq", "Pearson", "Dev", "deMagalhaes", "GenAge",
-                    "GTExAge", "Peters", "all"])
+        return set(["DESeq", "DESeq2", "Pearson", "Dev", "deMagalhaes",
+                    "GenAge", "GTExAge", "Peters", "all"])
 
     def __repr__(self):
         return """RNAAgeCalc(tissue=%r, exprtype=%r, idtype=%r, stype=%r,

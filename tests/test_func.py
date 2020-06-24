@@ -10,35 +10,36 @@ import numpy as np
 class Test(unittest.TestCase):
 
     def test_assert_raises1(self):
-        fpkm1 = fpkm
+        #fpkm1 = fpkm.copy(deep=True)
         age_calc = RNAAgeCalc(tissue="brain")
 
         with self.assertRaises(AssertionError):
             age_calc.predict_age(exprdata=1)
 
         with self.assertRaises(AssertionError):
+            fpkm1 = fpkm.copy(deep=True)
             fpkm1.iloc[:, 0] = "unknown"
             age_calc.predict_age(exprdata=fpkm1)
 
         with self.assertRaises(AssertionError):
-            # fpkm1 = fpkm
+            fpkm1 = fpkm.copy(deep=True)
             fpkm1.index = list(range(fpkm1.shape[0]))
             age_calc.predict_age(exprdata=fpkm1)
 
         with self.assertRaises(AssertionError):
-            # fpkm1 = fpkm
+            fpkm1 = fpkm.copy(deep=True)
             fpkm1.columns = list(range(fpkm1.shape[1]))
             age_calc.predict_age(exprdata=fpkm1)
 
         with self.assertRaises(AssertionError):
-            # fpkm1 = fpkm
+            fpkm1 = fpkm.copy(deep=True)
             templist = list(fpkm1.index)
             templist[1] = templist[0]
             fpkm1.index = templist
             age_calc.predict_age(exprdata=fpkm1)
 
         with self.assertRaises(AssertionError):
-            # fpkm1 = fpkm
+            fpkm1 = fpkm.copy(deep=True)
             fpkm1.iloc[0, 0] = -1
             age_calc.predict_age(exprdata=fpkm1)
 
@@ -171,6 +172,9 @@ class Test(unittest.TestCase):
         self.assertEqual(age_calc.signature, "GTExAge")
         with self.assertRaises(AssertionError):
             RNAAgeCalc(signature="unknown")
+        age_calc = RNAAgeCalc(signature="DESeq2")
+        self.assertEqual(age_calc._signature, "Pearson")
+        self.assertEqual(age_calc.signature, "Pearson")
         age_calc = RNAAgeCalc(signature="DESeq")
         self.assertEqual(age_calc._signature, "Pearson")
         self.assertEqual(age_calc.signature, "Pearson")
@@ -179,8 +183,8 @@ class Test(unittest.TestCase):
         age_calc = RNAAgeCalc(tissue="brain")
         self.assertEqual(age_calc._tissue, "brain")
         self.assertEqual(age_calc.tissue, "brain")
-        self.assertEqual(age_calc._signature, "DESeq")
-        self.assertEqual(age_calc.signature, "DESeq")
+        self.assertEqual(age_calc._signature, "DESeq2")
+        self.assertEqual(age_calc.signature, "DESeq2")
         age_calc = RNAAgeCalc(tissue="brain", signature="Peters")
         self.assertEqual(age_calc._signature, "Peters")
         self.assertEqual(age_calc.signature, "Peters")
@@ -192,15 +196,27 @@ class Test(unittest.TestCase):
         with self.assertRaises(AssertionError):
             age_calc = RNAAgeCalc(tissue="notfound",
                                   signature="unknown")
+        age_calc = RNAAgeCalc(tissue="notfound", signature="DESeq2")
+        self.assertEqual(age_calc._signature, "Pearson")
+        self.assertEqual(age_calc.signature, "Pearson")
         age_calc = RNAAgeCalc(tissue="notfound", signature="DESeq")
         self.assertEqual(age_calc._signature, "Pearson")
         self.assertEqual(age_calc.signature, "Pearson")
         with self.assertRaises(SetterError):
-            age_calc = RNAAgeCalc(signature="DESeq")
+            age_calc = RNAAgeCalc(signature="DESeq2")
             age_calc.signature = "Pearson"
         with self.assertRaises(SetterError):
-            age_calc = RNAAgeCalc(signature="DESeq")
+            age_calc = RNAAgeCalc(signature="DESeq2")
             age_calc.tissue = "brain"
+        
+        age_calc = RNAAgeCalc(signature="DESeq", tissue="brain")
+        self.assertEqual(age_calc._signature, "DESeq2")
+
+        age_calc1 = RNAAgeCalc(signature="DESeq", tissue="brain")
+        res1 = age_calc1.predict_age(exprdata=fpkm)
+        age_calc2 = RNAAgeCalc(signature="DESeq2", tissue="brain")
+        res2 = age_calc2.predict_age(exprdata=fpkm)
+        self.assertTrue(res1.equals(res2))
 
 
 if __name__ == '__main__':
