@@ -30,7 +30,14 @@ RNASeq Age Calculation in Python
 Features
 --------
 
-* This is the Python verion of our proposed multi-tissue transcriptional age calculator.
+This is the Python verion of our proposed multi-tissue transcriptional age calculator.
+
+* The RNAAgeCalc paper can be found `here <https://doi.org/10.1371/journal.pone.0237006>`_.
+* The Python package can be found `here <https://pypi.org/project/racpy>`_.
+* The Python package documentation can be found `here <https://racpy.readthedocs.io>`_.
+* An interactive Shiny App can be found `here <https://xuren2120.shinyapps.io/RNAAgeCalcshiny/>`_.    
+* The Shiny App demo can be found `here <http://www.ams.sunysb.edu/~pfkuan/RNAAgeCalc/instructions.html>`_.  
+* The R version can be found `here <https://bioconductor.org/packages/release/bioc/html/RNAAgeCalc.html>`_.   
 
 Authors
 --------
@@ -47,3 +54,18 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
 
 Dependencies scanned by PyUp.io
+
+Citation
+--------
+Ren, X., & Kuan, P. F. (2020). RNAAgeCalc: A multi-tissue transcriptional age calculator. PloS one, 15(8), e0237006. 
+
+| @article{ren2020rnaagecalc, 
+| title={RNAAgeCalc: A multi-tissue transcriptional age calculator},    
+| author={Ren, Xu and Kuan, Pei-Fen},    
+| journal={PLOS ONE},    
+| volume={15},    
+| number={8},    
+| pages={1-21},    
+| year={2020},    
+| publisher={Public Library of Science}    
+| }
