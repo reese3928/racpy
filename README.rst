@@ -32,12 +32,12 @@ Features
 
 This is the Python verion of our proposed multi-tissue transcriptional age calculator.
 
-* The RNAAgeCalc paper can be found `here <https://doi.org/10.1371/journal.pone.0237006>`_.
-* The Python package can be found `here <https://pypi.org/project/racpy>`_.
-* The Python package documentation can be found `here <https://racpy.readthedocs.io>`_.
-* An interactive Shiny App can be found `here <https://xuren2120.shinyapps.io/RNAAgeCalcshiny/>`_.    
-* The Shiny App demo can be found `here <http://www.ams.sunysb.edu/~pfkuan/RNAAgeCalc/instructions.html>`_.  
-* The R version can be found `here <https://bioconductor.org/packages/release/bioc/html/RNAAgeCalc.html>`_.   
+* The RNAAgeCalc paper can be found here https://doi.org/10.1371/journal.pone.0237006.
+* The Python package can be found here https://pypi.org/project/racpy.
+* The Python package documentation can be found here https://racpy.readthedocs.io.
+* An interactive Shiny App can be found here https://xuren2120.shinyapps.io/RNAAgeCalcshiny/.    
+* The Shiny App demo can be found here http://www.ams.sunysb.edu/~pfkuan/RNAAgeCalc/instructions.html.  
+* The R version can be found here https://bioconductor.org/packages/release/bioc/html/RNAAgeCalc.html.   
 
 Authors
 --------
