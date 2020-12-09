@@ -12,7 +12,7 @@ chardet==3.0.4
 click==7.1.2
 cmarkgfm==0.4.2
 coverage==5.0
-cryptography==2.9.2
+cryptography==3.3
 cycler==0.10.0
 distlib==0.3.0
 docutils==0.16
