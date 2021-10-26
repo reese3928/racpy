@@ -15,7 +15,7 @@ coverage==5.0
 cryptography==2.9.2
 cycler==0.10.0
 distlib==0.3.0
-docutils==0.16
+docutils==0.18
 entrypoints==0.3
 filelock==3.0.12
 flake8==3.8.2
