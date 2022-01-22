@@ -43,7 +43,7 @@ pycparser==2.20
 pyflakes==2.2.0
 Pygments==2.6.1
 pyOpenSSL==19.1.0
-pyparsing==2.4.7
+pyparsing==3.0.7
 PySocks==1.7.1
 pytest==5.4.2
 python-dateutil==2.8.1
